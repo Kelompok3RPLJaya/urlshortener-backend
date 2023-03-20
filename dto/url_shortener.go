@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/gofrs/uuid"
+import (
+	"url-shortener-backend/entity"
+
+	"github.com/google/uuid"
+)
 
 type UrlShortenerCreateDTO struct {
 	ID         	uuid.UUID `gorm:"primary_key;not_null" json:"id"`
