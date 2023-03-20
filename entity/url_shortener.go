@@ -7,7 +7,8 @@ type UrlShortener struct {
 	ShortUrl string    `json:"short_url"`
 	LongUrl  string    `json:"long_url"`
 	Views    uint64    `json:"views"`
-	Private  bool      `json:"private"`
+	IsPrivate 	*bool     `json:"is_private"`
+	IsFeeds   	*bool     `json:"is_feeds"`
 	
 	UserID   uuid.UUID `gorm:"foreignKey" json:"user_id"`
 	User     *User     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"user,omitempty"`
