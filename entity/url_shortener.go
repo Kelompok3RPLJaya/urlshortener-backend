@@ -13,5 +13,5 @@ type UrlShortener struct {
 	UserID   uuid.UUID `gorm:"foreignKey" json:"user_id"`
 	User     *User     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"user,omitempty"`
 
-	// Timestamp
+	Timestamp
 }
