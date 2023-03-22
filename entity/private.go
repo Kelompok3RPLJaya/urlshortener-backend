@@ -2,7 +2,7 @@ package entity
 
 import "github.com/google/uuid"
 
-type userPrivate struct {
+type Private struct {
 	ID             uuid.UUID `gorm:"primary_key;not_null"`
 	Password       string    `json:"password"`
 
