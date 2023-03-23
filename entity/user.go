@@ -1,7 +1,10 @@
 package entity
 
 import (
+	"url-shortener-backend/helpers"
+
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type User struct {
@@ -12,4 +15,13 @@ type User struct {
 	Role		string		`json:"role"`
 	
 	Timestamp
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	var err error
+	u.Password, err = helpers.HashPassword(u.Password)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"url-shortener-backend/common"
 	"url-shortener-backend/dto"
+	"url-shortener-backend/entity"
 	"url-shortener-backend/service"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ import (
 
 type UserController interface {
 	RegisterUser(ctx *gin.Context)
+	LoginUser(ctx *gin.Context)
 }
 
 type userController struct {
@@ -48,4 +50,35 @@ func(uc *userController) RegisterUser(ctx *gin.Context) {
 
 	res := common.BuildResponse(true, "Berhasil Menambahkan User", result)
 	ctx.JSON(http.StatusOK, res)
+}
+
+func(uc *userController) LoginUser(ctx *gin.Context) {
+	var userLoginDTO dto.UserLoginDTO
+	err := ctx.ShouldBind(&userLoginDTO)
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal Login", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	res, _ := uc.userService.Verify(ctx.Request.Context(), userLoginDTO.Email, userLoginDTO.Password)
+	if !res {
+		response := common.BuildErrorResponse("Gagal Login", "Email atau Password Salah", common.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+	
+	user, err := uc.userService.FindUserByEmail(ctx.Request.Context(), userLoginDTO.Email)
+	if err != nil {
+		response := common.BuildErrorResponse("Gagal Login", err.Error(), common.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+	token := uc.jwtService.GenerateToken(user.ID, user.Role)
+	userResponse := entity.Authorization{
+		Token: token,
+		Role: user.Role,
+	}
+	
+	response := common.BuildResponse(true, "Berhasil Login", userResponse)
+	ctx.JSON(http.StatusOK, response)
 }

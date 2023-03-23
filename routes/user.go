@@ -11,5 +11,6 @@ func UserRoutes(router *gin.Engine, UserController controller.UserController, jw
 	userRoutes := router.Group("/api/user")
 	{
 		userRoutes.POST("", UserController.RegisterUser)
+		userRoutes.POST("/login", UserController.LoginUser)
 	}
 }

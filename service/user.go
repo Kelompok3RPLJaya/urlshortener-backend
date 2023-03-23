@@ -4,6 +4,7 @@ import (
 	"context"
 	"url-shortener-backend/dto"
 	"url-shortener-backend/entity"
+	"url-shortener-backend/helpers"
 	"url-shortener-backend/repository"
 
 	"github.com/mashingan/smapping"
@@ -12,7 +13,8 @@ import (
 type UserService interface {
 	RegisterUser(ctx context.Context, userDTO dto.UserCreateDto) (entity.User, error)
 	FindUserByEmail(ctx context.Context, email string) (entity.User, error)
-	CheckUser(ctx context.Context, email string) ( bool, error)
+	CheckUser(ctx context.Context, email string) (bool, error)
+	Verify(ctx context.Context, email string, password string) (bool, error)
 }
 
 type userService struct {
@@ -49,4 +51,19 @@ func(us *userService) CheckUser(ctx context.Context, email string) (bool, error)
 		return false, nil
 	}
 	return true, nil
+}
+
+func(us *userService) Verify(ctx context.Context, email string, password string) (bool, error) {
+	res, err := us.userRepository.FindUserByEmail(ctx, email)
+	if err != nil {
+		return false, err
+	}
+	CheckPassword, err := helpers.CheckPassword(res.Password, []byte(password))
+	if err != nil {
+		return false, err
+	}
+	if res.Email == email && CheckPassword {
+		return true, nil
+	}
+	return false, nil
 }
