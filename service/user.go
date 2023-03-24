@@ -15,6 +15,7 @@ type UserService interface {
 	FindUserByEmail(ctx context.Context, email string) (entity.User, error)
 	CheckUser(ctx context.Context, email string) (bool, error)
 	Verify(ctx context.Context, email string, password string) (bool, error)
+	UpdateUser(ctx context.Context, userUpdateDto dto.UserUpdateDto) error
 }
 
 type userService struct {
@@ -27,7 +28,7 @@ func NewUserService(ur repository.UserRepository) UserService {
 	}
 }
 
-func(us *userService) RegisterUser(ctx context.Context, userDTO dto.UserCreateDto) (entity.User, error) {
+func (us *userService) RegisterUser(ctx context.Context, userDTO dto.UserCreateDto) (entity.User, error) {
 	user := entity.User{}
 	err := smapping.FillStruct(&user, smapping.MapFields(userDTO))
 	user.Role = "user"
@@ -37,11 +38,11 @@ func(us *userService) RegisterUser(ctx context.Context, userDTO dto.UserCreateDt
 	return us.userRepository.RegisterUser(ctx, user)
 }
 
-func(us *userService) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
+func (us *userService) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
 	return us.userRepository.FindUserByEmail(ctx, email)
 }
 
-func(us *userService) CheckUser(ctx context.Context, email string) (bool, error) {
+func (us *userService) CheckUser(ctx context.Context, email string) (bool, error) {
 	result, err := us.userRepository.FindUserByEmail(ctx, email)
 	if err != nil {
 		return false, err
@@ -53,7 +54,7 @@ func(us *userService) CheckUser(ctx context.Context, email string) (bool, error)
 	return true, nil
 }
 
-func(us *userService) Verify(ctx context.Context, email string, password string) (bool, error) {
+func (us *userService) Verify(ctx context.Context, email string, password string) (bool, error) {
 	res, err := us.userRepository.FindUserByEmail(ctx, email)
 	if err != nil {
 		return false, err
@@ -66,4 +67,14 @@ func(us *userService) Verify(ctx context.Context, email string, password string)
 		return true, nil
 	}
 	return false, nil
+}
+
+func (us *userService) UpdateUser(ctx context.Context, userUpdateDto dto.UserUpdateDto) error {
+	var user entity.User
+	err := smapping.FillStruct(&user, smapping.MapFields(userUpdateDto))
+	if err != nil {
+		return err
+	}
+
+	return us.userRepository.UpdateUser(ctx, user)
 }
