@@ -11,6 +11,7 @@ import (
 type UserRepository interface {
 	RegisterUser(ctx context.Context, user entity.User) (entity.User, error)
 	FindUserByEmail(ctx context.Context, email string) (entity.User, error)
+	UpdateUser(ctx context.Context, user entity.User) error
 }
 
 type userConnection struct {
@@ -23,7 +24,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-func(db *userConnection) RegisterUser(ctx context.Context, user entity.User) (entity.User, error) {
+func (db *userConnection) RegisterUser(ctx context.Context, user entity.User) (entity.User, error) {
 	user.ID = uuid.New()
 	tx := db.connection.Create(&user)
 	if tx.Error != nil {
@@ -32,11 +33,19 @@ func(db *userConnection) RegisterUser(ctx context.Context, user entity.User) (en
 	return user, nil
 }
 
-func(db *userConnection) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
+func (db *userConnection) FindUserByEmail(ctx context.Context, email string) (entity.User, error) {
 	var user entity.User
 	tx := db.connection.Where("email = ?", email).Take(&user)
 	if tx.Error != nil {
 		return user, tx.Error
 	}
 	return user, nil
+}
+
+func (db *userConnection) UpdateUser(ctx context.Context, user entity.User) error {
+	tx := db.connection.Updates(&user)
+	if tx.Error != nil {
+		return tx.Error
+	}
+	return nil
 }

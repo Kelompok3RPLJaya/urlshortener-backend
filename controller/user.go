@@ -13,21 +13,22 @@ import (
 type UserController interface {
 	RegisterUser(ctx *gin.Context)
 	LoginUser(ctx *gin.Context)
+	UpdateUser(ctx *gin.Context)
 }
 
 type userController struct {
-	jwtService service.JWTService
+	jwtService  service.JWTService
 	userService service.UserService
 }
 
 func NewUserController(us service.UserService, jwts service.JWTService) UserController {
 	return &userController{
 		userService: us,
-		jwtService: jwts,
+		jwtService:  jwts,
 	}
 }
 
-func(uc *userController) RegisterUser(ctx *gin.Context) {
+func (uc *userController) RegisterUser(ctx *gin.Context) {
 	var user dto.UserCreateDto
 	err := ctx.ShouldBind(&user)
 	if err != nil {
@@ -52,7 +53,7 @@ func(uc *userController) RegisterUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-func(uc *userController) LoginUser(ctx *gin.Context) {
+func (uc *userController) LoginUser(ctx *gin.Context) {
 	var userLoginDTO dto.UserLoginDTO
 	err := ctx.ShouldBind(&userLoginDTO)
 	if err != nil {
@@ -66,7 +67,7 @@ func(uc *userController) LoginUser(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
-	
+
 	user, err := uc.userService.FindUserByEmail(ctx.Request.Context(), userLoginDTO.Email)
 	if err != nil {
 		response := common.BuildErrorResponse("Gagal Login", err.Error(), common.EmptyObj{})
@@ -76,9 +77,37 @@ func(uc *userController) LoginUser(ctx *gin.Context) {
 	token := uc.jwtService.GenerateToken(user.ID, user.Role)
 	userResponse := entity.Authorization{
 		Token: token,
-		Role: user.Role,
+		Role:  user.Role,
 	}
-	
+
 	response := common.BuildResponse(true, "Berhasil Login", userResponse)
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (uc *userController) UpdateUser(ctx *gin.Context) {
+	var userUpdateDto dto.UserUpdateDto
+	err := ctx.ShouldBind(&userUpdateDto)
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal proses request update", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	token := ctx.MustGet("token").(string)
+	userID, err := uc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal proses request token", "Token yang dimasukkan salah", common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	userUpdateDto.ID = userID
+	err = uc.userService.UpdateUser(ctx, userUpdateDto)
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal update user", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	res := common.BuildResponse(true, "Berhasil update user", common.EmptyObj{})
+	ctx.JSON(http.StatusOK, res)
 }
