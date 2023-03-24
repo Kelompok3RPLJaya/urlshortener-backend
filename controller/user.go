@@ -88,7 +88,7 @@ func (uc *userController) UpdateUser(ctx *gin.Context) {
 	var userUpdateDto dto.UserUpdateDto
 	err := ctx.ShouldBind(&userUpdateDto)
 	if err != nil {
-		res := common.BuildErrorResponse("Gagal proses request update", err.Error(), common.EmptyObj{})
+		res := common.BuildErrorResponse("Gagal Memproses Request Update User", err.Error(), common.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
@@ -96,18 +96,25 @@ func (uc *userController) UpdateUser(ctx *gin.Context) {
 	token := ctx.MustGet("token").(string)
 	userID, err := uc.jwtService.GetUserIDByToken(token)
 	if err != nil {
-		res := common.BuildErrorResponse("Gagal proses request token", "Token yang dimasukkan salah", common.EmptyObj{})
+		res := common.BuildErrorResponse("Gagal Memproses Request Token", "Token Tidak Valid", common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	userUpdateDto.ID = userID
+
+	checkUser, _ := uc.userService.CheckUser(ctx.Request.Context(), userUpdateDto.Email)
+	if checkUser {
+		res := common.BuildErrorResponse("User Sudah Terdaftar", "false", common.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	userUpdateDto.ID = userID
 	err = uc.userService.UpdateUser(ctx, userUpdateDto)
 	if err != nil {
-		res := common.BuildErrorResponse("Gagal update user", err.Error(), common.EmptyObj{})
+		res := common.BuildErrorResponse("Gagal Mengupdate User", err.Error(), common.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
-	res := common.BuildResponse(true, "Berhasil update user", common.EmptyObj{})
+	res := common.BuildResponse(true, "Berhasil Mengupdate User", common.EmptyObj{})
 	ctx.JSON(http.StatusOK, res)
 }
