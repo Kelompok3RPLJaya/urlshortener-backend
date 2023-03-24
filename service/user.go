@@ -70,11 +70,10 @@ func (us *userService) Verify(ctx context.Context, email string, password string
 }
 
 func (us *userService) UpdateUser(ctx context.Context, userUpdateDto dto.UserUpdateDto) error {
-	var user entity.User
+	user := entity.User{}
 	err := smapping.FillStruct(&user, smapping.MapFields(userUpdateDto))
 	if err != nil {
 		return err
 	}
-
 	return us.userRepository.UpdateUser(ctx, user)
 }
