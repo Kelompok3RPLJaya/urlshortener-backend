@@ -13,5 +13,6 @@ func UrlShortenerRoutes(router *gin.Engine, UrlShortenerController controller.Ur
 	{
 		urlShortenerRoutes.POST("", middleware.CreateShortUrlAuthenticate(jwtService, false), UrlShortenerController.CreateUrlShortener)
 		urlShortenerRoutes.GET("/me", middleware.Authenticate(jwtService, false), UrlShortenerController.GetMeUrlShortener)
+		urlShortenerRoutes.GET("", UrlShortenerController.GetAllUrlShortener)
 	}
 }

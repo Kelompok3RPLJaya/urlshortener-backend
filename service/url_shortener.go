@@ -15,6 +15,7 @@ type UrlShortenerService interface {
 	ValidateUrlShortenerUser(ctx context.Context, userID string, urlShortenerID string) (bool)
 	ValidateShortUrl(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
 	GetUrlShortenerByUserID(ctx context.Context, UserID string) ([]entity.UrlShortener, error)
+	GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error)
 }
 
 type urlShortenerService struct {
@@ -80,4 +81,8 @@ func(us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, UserI
 		return nil, err
 	}
 	return us.urlShortenerRepository.GetUrlShortenerByUserID(ctx, userUUID)
+}
+
+func(us *urlShortenerService) GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error) {
+	return us.urlShortenerRepository.GetAllUrlShortener(ctx)
 }
