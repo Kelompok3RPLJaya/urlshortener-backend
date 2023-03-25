@@ -11,6 +11,7 @@ import (
 
 type UrlShortenerController interface {
 	CreateUrlShortener(ctx *gin.Context)
+	GetMeUrlShortener(ctx *gin.Context)
 }
 
 type urlShortenerController struct {
@@ -65,5 +66,23 @@ func(uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 		return
 	}
 	res := common.BuildResponse(true, "Berhasil Menambahkan Url Shortener", result)
+	ctx.JSON(http.StatusOK, res)
+}
+
+func(uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
+	token := ctx.MustGet("token").(string)
+	userID, err := uc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		response := common.BuildErrorResponse("Gagal Memproses Request", "Token Tidak Valid", nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
+		return
+	}
+	result, err := uc.urlShortenerService.GetUrlShortenerByUserID(ctx.Request.Context(), userID.String())
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal Mendapatkan Url Shortener User", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	res := common.BuildResponse(true, "Berhasil Mendapatkan Url Shortener User", result)
 	ctx.JSON(http.StatusOK, res)
 }
