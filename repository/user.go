@@ -12,6 +12,7 @@ type UserRepository interface {
 	RegisterUser(ctx context.Context, user entity.User) (entity.User, error)
 	FindUserByEmail(ctx context.Context, email string) (entity.User, error)
 	UpdateUser(ctx context.Context, user entity.User) error
+	FindUserByID(ctx context.Context, userID uuid.UUID) (entity.User, error)
 }
 
 type userConnection struct {
@@ -48,4 +49,14 @@ func (db *userConnection) UpdateUser(ctx context.Context, user entity.User) erro
 		return tx.Error
 	}
 	return nil
+}
+
+func (db *userConnection) FindUserByID(ctx context.Context, userID uuid.UUID) (entity.User, error) {
+	var userDetail entity.User
+	tx := db.connection.Where("id = ?", userID).Take(&userDetail)
+	if tx.Error != nil {
+		return userDetail, tx.Error
+	}
+	userDetail.Password = ""
+	return userDetail, nil
 }
