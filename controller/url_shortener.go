@@ -12,6 +12,7 @@ import (
 type UrlShortenerController interface {
 	CreateUrlShortener(ctx *gin.Context)
 	GetMeUrlShortener(ctx *gin.Context)
+	GetAllUrlShortener(ctx *gin.Context)
 }
 
 type urlShortenerController struct {
@@ -84,5 +85,16 @@ func(uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
 		return
 	}
 	res := common.BuildResponse(true, "Berhasil Mendapatkan Url Shortener User", result)
+	ctx.JSON(http.StatusOK, res)
+}
+
+func(uc *urlShortenerController) GetAllUrlShortener(ctx *gin.Context) {
+	result, err := uc.urlShortenerService.GetAllUrlShortener(ctx.Request.Context())
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal Mendapatkan List Url Shortener", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	res := common.BuildResponse(true, "Berhasil Mendapatkan List Url Shortener", result)
 	ctx.JSON(http.StatusOK, res)
 }
