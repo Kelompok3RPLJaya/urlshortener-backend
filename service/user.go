@@ -7,6 +7,7 @@ import (
 	"url-shortener-backend/helpers"
 	"url-shortener-backend/repository"
 
+	"github.com/google/uuid"
 	"github.com/mashingan/smapping"
 )
 
@@ -16,6 +17,7 @@ type UserService interface {
 	CheckUser(ctx context.Context, email string) (bool, error)
 	Verify(ctx context.Context, email string, password string) (bool, error)
 	UpdateUser(ctx context.Context, userUpdateDto dto.UserUpdateDto) error
+	GetDetailAccount(ctx context.Context, userID uuid.UUID) (entity.User, error)
 }
 
 type userService struct {
@@ -76,4 +78,13 @@ func (us *userService) UpdateUser(ctx context.Context, userUpdateDto dto.UserUpd
 		return err
 	}
 	return us.userRepository.UpdateUser(ctx, user)
+}
+
+func (us *userService) GetDetailAccount(ctx context.Context, userID uuid.UUID) (entity.User, error) {
+	detailUser, err := us.userRepository.FindUserByID(ctx, userID)
+	if err != nil {
+		return entity.User{}, err
+	}
+
+	return detailUser, nil
 }
