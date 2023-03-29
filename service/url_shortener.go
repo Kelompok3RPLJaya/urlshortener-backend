@@ -16,6 +16,10 @@ type UrlShortenerService interface {
 	ValidateShortUrl(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
 	GetUrlShortenerByUserID(ctx context.Context, UserID string) ([]entity.UrlShortener, error)
 	GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error)
+	UpdateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerUpdateDTO, urlShortenerID string) (error)
+	UpdatePrivate(ctx context.Context, urlShortenerID string, privateDTO dto.PrivateUpdateDTO) (error)
+	UpdatePublic(ctx context.Context, urlShortenerID string) (error)
+	GetUrlShortenerByID(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
 }
 
 type urlShortenerService struct {
@@ -85,4 +89,71 @@ func(us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, UserI
 
 func(us *urlShortenerService) GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error) {
 	return us.urlShortenerRepository.GetAllUrlShortener(ctx)
+}
+
+func(us *urlShortenerService) UpdateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerUpdateDTO, urlShortenerID string) (error) {
+	urlShortener := entity.UrlShortener{}
+	err := smapping.FillStruct(&urlShortener, smapping.MapFields(urlShortenerDTO))
+	if err != nil {
+		return err
+	}
+	urlShortenerUUID, err := uuid.Parse(urlShortenerID)
+	if err != nil {
+		return err
+	}
+	urlShortener.ID = urlShortenerUUID
+	return us.urlShortenerRepository.UpdateUrlShortener(ctx, urlShortener)
+}
+
+func(us *urlShortenerService) UpdatePrivate(ctx context.Context, urlShortenerID string, privateDTO dto.PrivateUpdateDTO) (error) {
+	urlShortenerUUID, err := uuid.Parse(urlShortenerID)
+	if err != nil {
+		return err
+	}
+	urlShortener := entity.UrlShortener{
+		ID: urlShortenerUUID,
+		IsPrivate: dto.BoolPointer(true),
+	}
+	err = us.urlShortenerRepository.UpdateUrlShortener(ctx, urlShortener)
+	if err != nil {
+		return err
+	}
+	private := entity.Private{
+		ID: uuid.New(),
+		Password: privateDTO.Password,
+		UrlShortenerID: urlShortenerUUID,
+	}
+	_, err = us.privateRepository.CreatePrivate(ctx, private)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func(us *urlShortenerService) UpdatePublic(ctx context.Context, urlShortenerID string) (error) {
+	urlShortenerUUID, err := uuid.Parse(urlShortenerID)
+	if err != nil {
+		return err
+	}
+	urlShortener := entity.UrlShortener{
+		ID: urlShortenerUUID,
+		IsPrivate: dto.BoolPointer(false),
+	}
+	err = us.urlShortenerRepository.UpdateUrlShortener(ctx, urlShortener)
+	if err != nil {
+		return err
+	}
+	private, err := us.privateRepository.GetPrivateByUrlShortenerID(ctx, urlShortenerUUID)
+	if err != nil {
+		return err
+	}
+	return us.privateRepository.DeletePrivate(ctx, private.ID)
+}
+
+func(us *urlShortenerService) GetUrlShortenerByID(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error) {
+	urlShortenerUUID, err := uuid.Parse(urlShortenerID)
+	if err != nil {
+		return entity.UrlShortener{}, err
+	}
+	return us.urlShortenerRepository.GetUrlShortenerByID(ctx, urlShortenerUUID)
 }
