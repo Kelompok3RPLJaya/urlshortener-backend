@@ -15,21 +15,22 @@ type UrlShortenerController interface {
 	GetAllUrlShortener(ctx *gin.Context)
 	UpdateUrlShortener(ctx *gin.Context)
 	UpdatePrivate(ctx *gin.Context)
+	DeleteUrlShortener(ctx *gin.Context)
 }
 
 type urlShortenerController struct {
 	urlShortenerService service.UrlShortenerService
-	jwtService service.JWTService
+	jwtService          service.JWTService
 }
 
 func NewUrlShortenerController(us service.UrlShortenerService, js service.JWTService) UrlShortenerController {
 	return &urlShortenerController{
 		urlShortenerService: us,
-		jwtService: js,
+		jwtService:          js,
 	}
 }
 
-func(uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
+func (uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 	var urlShortener dto.UrlShortenerCreateDTO
 	err := ctx.ShouldBind(&urlShortener)
 	if err != nil {
@@ -48,7 +49,7 @@ func(uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 		}
 		urlShortener.UserID = userID
 	}
-	
+
 	checkUrlShortener, _ := uc.urlShortenerService.ValidateShortUrl(ctx.Request.Context(), urlShortener.ShortUrl)
 	if checkUrlShortener.ShortUrl != "" {
 		res := common.BuildErrorResponse("Gagal Menambahkan Url Shortener", "Short Url Sudah Terdaftar", common.EmptyObj{})
@@ -72,7 +73,7 @@ func(uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-func(uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
+func (uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
 	token := ctx.MustGet("token").(string)
 	userID, err := uc.jwtService.GetUserIDByToken(token)
 	if err != nil {
@@ -90,7 +91,7 @@ func(uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-func(uc *urlShortenerController) GetAllUrlShortener(ctx *gin.Context) {
+func (uc *urlShortenerController) GetAllUrlShortener(ctx *gin.Context) {
 	result, err := uc.urlShortenerService.GetAllUrlShortener(ctx.Request.Context())
 	if err != nil {
 		res := common.BuildErrorResponse("Gagal Mendapatkan List Url Shortener", err.Error(), common.EmptyObj{})
@@ -101,7 +102,7 @@ func(uc *urlShortenerController) GetAllUrlShortener(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-func(uc *urlShortenerController) UpdateUrlShortener(ctx *gin.Context) {
+func (uc *urlShortenerController) UpdateUrlShortener(ctx *gin.Context) {
 	urlShortenerID := ctx.Param("id")
 	var urlShortenerDTO dto.UrlShortenerUpdateDTO
 	err := ctx.ShouldBind(&urlShortenerDTO)
@@ -143,7 +144,7 @@ func(uc *urlShortenerController) UpdateUrlShortener(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-func(uc *urlShortenerController) UpdatePrivate(ctx *gin.Context) {
+func (uc *urlShortenerController) UpdatePrivate(ctx *gin.Context) {
 	urlShortenerID := ctx.Param("id")
 
 	var privateDTO dto.PrivateUpdateDTO
@@ -193,5 +194,26 @@ func(uc *urlShortenerController) UpdatePrivate(ctx *gin.Context) {
 		return
 	}
 	res := common.BuildResponse(true, "Berhasil Mengupdate Url Shortener", common.EmptyObj{})
+	ctx.JSON(http.StatusOK, res)
+}
+
+func (uc *urlShortenerController) DeleteUrlShortener(ctx *gin.Context) {
+	urlShortenerID := ctx.Param("id")
+	token := ctx.MustGet("token").(string)
+	userID, err := uc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		response := common.BuildErrorResponse("Gagal Memproses Request", "Token Tidak Valid", nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
+		return
+	}
+
+	checkURL := uc.urlShortenerService.ValidateUrlShortenerUser(ctx, userID.String(), urlShortenerID)
+	if !checkURL {
+		response := common.BuildErrorResponse("Gagal Memproses Request", "Akun Anda Tidak Memiliki Akses Untuk Mengupdate Url Shortener Ini", nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
+		return
+	}
+
+	res := common.BuildResponse(true, "Berhasil Menghapus Url Shortener", common.EmptyObj{})
 	ctx.JSON(http.StatusOK, res)
 }
