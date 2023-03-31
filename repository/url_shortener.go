@@ -18,6 +18,7 @@ type UrlShortenerRepository interface {
 	DeleteUrlShortener(ctx context.Context, urlShortenerID uuid.UUID) error
 	IncreaseViewsCount(ctx context.Context, urlShortener entity.UrlShortener) (entity.UrlShortener, error)
 	GetUrlShortenerByIDUnscopped(ctx context.Context, urlShortenerID uuid.UUID) (entity.UrlShortener, error)
+	GetUrlShortenerByUserIDWithSearch(ctx context.Context, userUUID uuid.UUID, search string) ([]entity.UrlShortener, error)
 }
 
 type urlShortenerConnection struct {
@@ -143,6 +144,15 @@ func (db *urlShortenerConnection) GetUrlShortenerByIDUnscopped(ctx context.Conte
 	tx := db.connection.Unscoped().Where("id = ?", urlShortenerID).Take(&urlShortener)
 	if tx.Error != nil {
 		return entity.UrlShortener{}, tx.Error
+	}
+	return urlShortener, nil
+}
+
+func (db *urlShortenerConnection) GetUrlShortenerByUserIDWithSearch(ctx context.Context, userUUID uuid.UUID, search string) ([]entity.UrlShortener, error) {
+	var urlShortener []entity.UrlShortener
+	tx := db.connection.Where("user_id = ? and (short_url LIKE ? or long_url LIKE ? or title LIKE ?)", userUUID, "%"+search+"%", "%"+search+"%", "%"+search+"%").Find(&urlShortener)
+	if tx.Error != nil {
+		return nil, tx.Error
 	}
 	return urlShortener, nil
 }
