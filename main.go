@@ -26,21 +26,21 @@ func main() {
 
 	var (
 		db *gorm.DB = config.SetupDatabaseConnection()
-		
+
 		jwtService service.JWTService = service.NewJWTService()
 
-		privateRepository repository.PrivateRepository = repository.NewPrivateRepository(db)
-		feedsRepository repository.FeedsRepository = repository.NewFeedsRepository(db)
+		privateRepository      repository.PrivateRepository      = repository.NewPrivateRepository(db)
+		feedsRepository        repository.FeedsRepository        = repository.NewFeedsRepository(db)
 		urlShortenerRepository repository.UrlShortenerRepository = repository.NewUrlShortenerRepository(db, feedsRepository)
-		userRepository repository.UserRepository = repository.NewUserRepository(db)
+		userRepository         repository.UserRepository         = repository.NewUserRepository(db)
 
-		feedsService service.FeedsService = service.NewFeedsService(feedsRepository, urlShortenerRepository, userRepository)
-		urlShortenerService service.UrlShortenerService = service.NewUrlShortenerService(urlShortenerRepository, privateRepository)
-		userService service.UserService = service.NewUserService(userRepository)
+		feedsService        service.FeedsService        = service.NewFeedsService(feedsRepository, urlShortenerRepository, userRepository)
+		urlShortenerService service.UrlShortenerService = service.NewUrlShortenerService(urlShortenerRepository, privateRepository, userRepository)
+		userService         service.UserService         = service.NewUserService(userRepository)
 
-		feedsController controller.FeedsController = controller.NewFeedsController(feedsService)
+		feedsController        controller.FeedsController        = controller.NewFeedsController(feedsService)
 		urlShortenerController controller.UrlShortenerController = controller.NewUrlShortenerController(urlShortenerService, jwtService)
-		userController controller.UserController = controller.NewUserController(userService, jwtService)
+		userController         controller.UserController         = controller.NewUserController(userService, jwtService)
 	)
 
 	server := gin.Default()
