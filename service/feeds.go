@@ -4,11 +4,12 @@ import (
 	"context"
 	"strings"
 	"url-shortener-backend/dto"
+	"url-shortener-backend/entity"
 	"url-shortener-backend/repository"
 )
 
 type FeedsService interface {
-	GetAllFeeds(ctx context.Context) ([]dto.FeedsResponseDTO, error)
+	GetAllFeeds(ctx context.Context, pagination entity.Pagination) (dto.PaginationResponse, error)
 }
 
 type feedsService struct {
@@ -25,21 +26,21 @@ func NewFeedsService(fr repository.FeedsRepository, ur repository.UrlShortenerRe
 	}
 }
 
-func(fs *feedsService) GetAllFeeds(ctx context.Context) ([]dto.FeedsResponseDTO, error) {
-	res, err := fs.feedsRepository.GetAllFeeds(ctx)
+func(fs *feedsService) GetAllFeeds(ctx context.Context, pagination entity.Pagination) (dto.PaginationResponse, error) {
+	resPagination, resFeeds, err := fs.feedsRepository.GetAllFeeds(ctx, pagination)
 	if err != nil {
-		return nil, err
+		return dto.PaginationResponse{}, err
 	}
 	var feedsDTOArray []dto.FeedsResponseDTO
 	var feedsDTO dto.FeedsResponseDTO
-	for _, v := range res {
+	for _, v := range resFeeds {
 		urlShortener, err := fs.urlShortenerRepository.GetUrlShortenerByIDUnscopped(ctx, v.UrlShortenerID)
-		if err != nil {
-			return nil, err
+		if urlShortener.ShortUrl == "" {
+			continue
 		}
 		user, err := fs.userRepository.FindUserByID(ctx, *urlShortener.UserID)
 		if err != nil {
-			return nil, err
+			return dto.PaginationResponse{}, err
 		}
 		feedsDTO.ID = v.ID
 		feedsDTO.Title = urlShortener.Title
@@ -57,5 +58,6 @@ func(fs *feedsService) GetAllFeeds(ctx context.Context) ([]dto.FeedsResponseDTO,
 		}
 		feedsDTOArray = append(feedsDTOArray, feedsDTO)
 	}
-	return feedsDTOArray, nil
+	resPagination.DataPerPage = feedsDTOArray
+	return resPagination, nil
 }

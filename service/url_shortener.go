@@ -14,7 +14,7 @@ type UrlShortenerService interface {
 	CreateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerCreateDTO) (entity.UrlShortener, error)
 	ValidateUrlShortenerUser(ctx context.Context, userID string, urlShortenerID string) bool
 	ValidateShortUrl(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
-	GetUrlShortenerByUserID(ctx context.Context, UserID string, search string) ([]dto.UrlShortenerResponseDTO, error)
+	GetUrlShortenerByUserID(ctx context.Context, UserID string, search string, pagination entity.Pagination) (dto.PaginationResponse, error)
 	GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error)
 	UpdateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerUpdateDTO, urlShortenerID string) error
 	UpdatePrivate(ctx context.Context, urlShortenerID string, privateDTO dto.PrivateUpdateDTO) error
@@ -82,74 +82,67 @@ func (us *urlShortenerService) ValidateShortUrl(ctx context.Context, urlShortene
 	return us.urlShortenerRepository.GetUrlShortenerByShortUrl(ctx, urlShortenerID)
 }
 
-func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, UserID string, search string) ([]dto.UrlShortenerResponseDTO, error) {
+func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, UserID string, search string, pagination entity.Pagination) (dto.PaginationResponse, error) {
 	userUUID, err := uuid.Parse(UserID)
 	if err != nil {
-		return nil, err
+		return dto.PaginationResponse{}, err
 	}
-
 	if search != "" {
-		res, err := us.urlShortenerRepository.GetUrlShortenerByUserIDWithSearch(ctx, userUUID, search)
+		resPagination, resUrlShortener, err := us.urlShortenerRepository.GetUrlShortenerByUserIDWithSearch(ctx, userUUID, search, pagination)
 		if err != nil {
-			return nil, err
-		}
-
+			return dto.PaginationResponse{}, err
+		}	
 		resUser, err := us.userRepository.FindUserByID(ctx, userUUID)
 		if err != nil {
-			return nil, err
+			return dto.PaginationResponse{}, err
 		}
-		var urlDtoResponses = []dto.UrlShortenerResponseDTO{}
-		var urlDtoResponse = dto.UrlShortenerResponseDTO{}
-
-		for _, v := range res {
-			urlDtoResponse.ID = v.ID
-			urlDtoResponse.Title = v.Title
-			urlDtoResponse.ShortUrl = v.ShortUrl
-			urlDtoResponse.LongUrl = v.LongUrl
-			urlDtoResponse.Views = v.Views
-			urlDtoResponse.IsPrivate = v.IsPrivate
-			urlDtoResponse.IsFeeds = v.IsFeeds
-			urlDtoResponse.UserID = *v.UserID
-			urlDtoResponse.Username = resUser.Name
-			urlDtoResponse.UpdatedAt = v.UpdatedAt
-			urlDtoResponse.CreatedAt = v.CreatedAt
-			urlDtoResponse.DeletedAt = v.DeletedAt
-
-			urlDtoResponses = append(urlDtoResponses, urlDtoResponse)
+		var userDTOResponse = []dto.UrlShortenerResponseDTO{}
+		var userDTO = dto.UrlShortenerResponseDTO{}
+		for _, v := range resUrlShortener {
+			userDTO.ID = v.ID
+			userDTO.Title = v.Title
+			userDTO.LongUrl = v.LongUrl
+			userDTO.ShortUrl = v.ShortUrl
+			userDTO.Views = v.Views
+			userDTO.IsPrivate = v.IsPrivate
+			userDTO.IsFeeds = v.IsFeeds
+			userDTO.UserID = *v.UserID
+			userDTO.Username = resUser.Name
+			userDTO.CreatedAt = v.CreatedAt
+			userDTO.UpdatedAt = v.UpdatedAt
+			userDTO.DeletedAt = v.DeletedAt
+			userDTOResponse = append(userDTOResponse, userDTO)
 		}
-
-		return urlDtoResponses, nil
+		resPagination.DataPerPage = userDTOResponse
+		return resPagination, err
 	} else {
-		res, err := us.urlShortenerRepository.GetUrlShortenerByUserID(ctx, userUUID)
+		resPagination, resUrlShortener, err := us.urlShortenerRepository.GetUrlShortenerByUserID(ctx, userUUID, pagination)
 		if err != nil {
-			return nil, err
+			return dto.PaginationResponse{}, err
 		}
-
 		resUser, err := us.userRepository.FindUserByID(ctx, userUUID)
 		if err != nil {
-			return nil, err
+			return dto.PaginationResponse{}, err
 		}
-		var urlDtoResponses = []dto.UrlShortenerResponseDTO{}
-		var urlDtoResponse = dto.UrlShortenerResponseDTO{}
-
-		for _, v := range res {
-			urlDtoResponse.ID = v.ID
-			urlDtoResponse.Title = v.Title
-			urlDtoResponse.ShortUrl = v.ShortUrl
-			urlDtoResponse.LongUrl = v.LongUrl
-			urlDtoResponse.Views = v.Views
-			urlDtoResponse.IsPrivate = v.IsPrivate
-			urlDtoResponse.IsFeeds = v.IsFeeds
-			urlDtoResponse.UserID = *v.UserID
-			urlDtoResponse.Username = resUser.Name
-			urlDtoResponse.UpdatedAt = v.UpdatedAt
-			urlDtoResponse.CreatedAt = v.CreatedAt
-			urlDtoResponse.DeletedAt = v.DeletedAt
-
-			urlDtoResponses = append(urlDtoResponses, urlDtoResponse)
+		var userDTOResponse = []dto.UrlShortenerResponseDTO{}
+		var userDTO = dto.UrlShortenerResponseDTO{}
+		for _, v := range resUrlShortener {
+			userDTO.ID = v.ID
+			userDTO.Title = v.Title
+			userDTO.LongUrl = v.LongUrl
+			userDTO.ShortUrl = v.ShortUrl
+			userDTO.Views = v.Views
+			userDTO.IsPrivate = v.IsPrivate
+			userDTO.IsFeeds = v.IsFeeds
+			userDTO.UserID = *v.UserID
+			userDTO.Username = resUser.Name
+			userDTO.CreatedAt = v.CreatedAt
+			userDTO.UpdatedAt = v.UpdatedAt
+			userDTO.DeletedAt = v.DeletedAt
+			userDTOResponse = append(userDTOResponse, userDTO)
 		}
-
-		return urlDtoResponses, nil
+		resPagination.DataPerPage = userDTOResponse
+		return resPagination, err
 	}
 }
 

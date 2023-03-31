@@ -2,8 +2,10 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 	"url-shortener-backend/common"
 	"url-shortener-backend/dto"
+	"url-shortener-backend/entity"
 	"url-shortener-backend/service"
 
 	"github.com/gin-gonic/gin"
@@ -75,6 +77,18 @@ func (uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 
 func (uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
 	search := ctx.Query("search")
+	var pagination entity.Pagination
+	page, _ := strconv.Atoi(ctx.Query("page"))
+	if page <= 0 {
+		page = 1
+	}
+	pagination.Page = page
+	perPage, _ := strconv.Atoi(ctx.Query("per_page"))
+	if perPage <= 0 {
+		perPage = 10
+	}
+	pagination.PerPage = perPage
+
 	token := ctx.MustGet("token").(string)
 	userID, err := uc.jwtService.GetUserIDByToken(token)
 	if err != nil {
@@ -82,7 +96,7 @@ func (uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
 		return
 	}
-	result, err := uc.urlShortenerService.GetUrlShortenerByUserID(ctx.Request.Context(), userID.String(), search)
+	result, err := uc.urlShortenerService.GetUrlShortenerByUserID(ctx.Request.Context(), userID.String(), search, pagination)
 	if err != nil {
 		res := common.BuildErrorResponse("Gagal Mendapatkan Url Shortener User", err.Error(), common.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)

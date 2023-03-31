@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"url-shortener-backend/common"
+	"url-shortener-backend/dto"
 	"url-shortener-backend/entity"
 
 	"github.com/google/uuid"
@@ -9,16 +11,17 @@ import (
 )
 
 type UrlShortenerRepository interface {
+	GetTotalDataUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateUrlShortener(ctx context.Context, urlShortener entity.UrlShortener) (entity.UrlShortener, error)
 	GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error)
 	GetUrlShortenerByID(ctx context.Context, urlShortenerID uuid.UUID) (entity.UrlShortener, error)
-	GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID) ([]entity.UrlShortener, error)
+	GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error)
 	GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string) (entity.UrlShortener, error)
 	UpdateUrlShortener(ctx context.Context, urlShortener entity.UrlShortener) error
 	DeleteUrlShortener(ctx context.Context, urlShortenerID uuid.UUID) error
 	IncreaseViewsCount(ctx context.Context, urlShortener entity.UrlShortener) (entity.UrlShortener, error)
 	GetUrlShortenerByIDUnscopped(ctx context.Context, urlShortenerID uuid.UUID) (entity.UrlShortener, error)
-	GetUrlShortenerByUserIDWithSearch(ctx context.Context, userUUID uuid.UUID, search string) ([]entity.UrlShortener, error)
+	GetUrlShortenerByUserIDWithSearch(ctx context.Context, UserID uuid.UUID, search string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error)
 }
 
 type urlShortenerConnection struct {
@@ -31,6 +34,15 @@ func NewUrlShortenerRepository(db *gorm.DB, fs FeedsRepository) UrlShortenerRepo
 		connection:      db,
 		feedsRepository: fs,
 	}
+}
+
+func(db *urlShortenerConnection) GetTotalDataUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	var totalData int64
+	bc := db.connection.Model(&entity.UrlShortener{}).Where("user_id = ?", userID).Count(&totalData)
+	if bc.Error != nil {
+		return 0, bc.Error
+	}
+	return totalData, nil
 }
 
 func (db *urlShortenerConnection) CreateUrlShortener(ctx context.Context, urlShortener entity.UrlShortener) (entity.UrlShortener, error) {
@@ -69,13 +81,21 @@ func (db *urlShortenerConnection) GetUrlShortenerByID(ctx context.Context, urlSh
 	return urlShortener, nil
 }
 
-func (db *urlShortenerConnection) GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID) ([]entity.UrlShortener, error) {
+func (db *urlShortenerConnection) GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error) {
+	var paginationResponse dto.PaginationResponse
 	var urlShortener []entity.UrlShortener
-	tx := db.connection.Where("user_id = ?", UserID).Find(&urlShortener)
+
+	totalData, _ := db.GetTotalDataUser(ctx, UserID)
+
+	tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ?", UserID).Find(&urlShortener)
 	if tx.Error != nil {
-		return nil, tx.Error
+		return dto.PaginationResponse{}, nil, tx.Error
 	}
-	return urlShortener, nil
+	// paginationResponse.DataPerPage = urlShortener
+	paginationResponse.Meta.MaxPage = pagination.MaxPage
+	paginationResponse.Meta.Page = pagination.Page
+	paginationResponse.Meta.TotalData = pagination.TotalData
+	return paginationResponse, urlShortener, nil
 }
 
 func (db *urlShortenerConnection) GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string) (entity.UrlShortener, error) {
@@ -141,18 +161,26 @@ func (db *urlShortenerConnection) IncreaseViewsCount(ctx context.Context, urlSho
 
 func (db *urlShortenerConnection) GetUrlShortenerByIDUnscopped(ctx context.Context, urlShortenerID uuid.UUID) (entity.UrlShortener, error) {
 	var urlShortener entity.UrlShortener
-	tx := db.connection.Unscoped().Where("id = ?", urlShortenerID).Take(&urlShortener)
+	tx := db.connection.Unscoped().Where("id = ? and user_id is not null", urlShortenerID).Take(&urlShortener)
 	if tx.Error != nil {
 		return entity.UrlShortener{}, tx.Error
 	}
 	return urlShortener, nil
 }
 
-func (db *urlShortenerConnection) GetUrlShortenerByUserIDWithSearch(ctx context.Context, userUUID uuid.UUID, search string) ([]entity.UrlShortener, error) {
+func (db *urlShortenerConnection) GetUrlShortenerByUserIDWithSearch(ctx context.Context, UserID uuid.UUID, search string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error) {
+	var paginationResponse dto.PaginationResponse
 	var urlShortener []entity.UrlShortener
-	tx := db.connection.Where("user_id = ? and (short_url LIKE ? or long_url LIKE ? or title LIKE ?)", userUUID, "%"+search+"%", "%"+search+"%", "%"+search+"%").Find(&urlShortener)
+
+	totalData, _ := db.GetTotalDataUser(ctx, UserID)
+
+	tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ? and (short_url LIKE ? or long_url LIKE ? or title LIKE ?)", UserID, "%" + search + "%", "%" + search + "%", "%" + search + "%").Find(&urlShortener)
 	if tx.Error != nil {
-		return nil, tx.Error
+		return dto.PaginationResponse{}, nil, tx.Error
 	}
-	return urlShortener, nil
+	// paginationResponse.DataPerPage = urlShortener
+	paginationResponse.Meta.MaxPage = pagination.MaxPage
+	paginationResponse.Meta.Page = pagination.Page
+	paginationResponse.Meta.TotalData = pagination.TotalData
+	return paginationResponse, urlShortener, nil
 }
