@@ -51,14 +51,16 @@ func (db *urlShortenerConnection) CreateUrlShortener(ctx context.Context, urlSho
 	if tx.Error != nil {
 		return entity.UrlShortener{}, tx.Error
 	}
-	var feeds = entity.Feeds{
-		Data:           urlShortener.ShortUrl,
-		Method:         "Create",
-		UrlShortenerID: urlShortener.ID,
-	}
-	_, err := db.feedsRepository.CreateFeeds(ctx, feeds)
-	if err != nil {
-		return entity.UrlShortener{}, err
+	if urlShortener.UserID != nil {
+		var feeds = entity.Feeds{
+			Data:           urlShortener.ShortUrl,
+			Method:         "Create",
+			UrlShortenerID: urlShortener.ID,
+		}
+		_, err := db.feedsRepository.CreateFeeds(ctx, feeds)
+		if err != nil {
+			return entity.UrlShortener{}, err
+		}	
 	}
 	return urlShortener, nil
 }

@@ -54,5 +54,5 @@ func main() {
 	if port == "" {
 		port = "8000"
 	}
-	server.Run("127.0.0.1:" + port)
+	server.Run(":" + port)
 }

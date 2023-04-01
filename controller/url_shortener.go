@@ -18,6 +18,7 @@ type UrlShortenerController interface {
 	UpdateUrlShortener(ctx *gin.Context)
 	UpdatePrivate(ctx *gin.Context)
 	DeleteUrlShortener(ctx *gin.Context)
+	GetUrlShortenerByShortUrl(ctx *gin.Context)
 }
 
 type urlShortenerController struct {
@@ -237,5 +238,17 @@ func (uc *urlShortenerController) DeleteUrlShortener(ctx *gin.Context) {
 	}
 
 	res := common.BuildResponse(true, "Berhasil Menghapus Url Shortener", common.EmptyObj{})
+	ctx.JSON(http.StatusOK, res)
+}
+
+func(uc *urlShortenerController) GetUrlShortenerByShortUrl(ctx *gin.Context) {
+	shortUrl := ctx.Param("short_url")
+	result, err := uc.urlShortenerService.GetUrlShortenerByShortUrl(ctx.Request.Context(), shortUrl)
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal Mendapatkan Url", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	res := common.BuildResponse(true, "Berhasil Mendapatkan Url", result)
 	ctx.JSON(http.StatusOK, res)
 }

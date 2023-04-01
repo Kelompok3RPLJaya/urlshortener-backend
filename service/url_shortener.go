@@ -21,6 +21,7 @@ type UrlShortenerService interface {
 	UpdatePublic(ctx context.Context, urlShortenerID string) error
 	GetUrlShortenerByID(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
 	DeleteUrlShortener(ctx context.Context, urlShortenerID string) error
+	GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string) (entity.UrlShortener, error)
 }
 
 type urlShortenerService struct {
@@ -224,4 +225,12 @@ func (us *urlShortenerService) DeleteUrlShortener(ctx context.Context, urlShorte
 	}
 
 	return us.urlShortenerRepository.DeleteUrlShortener(ctx, urlShortenerUUID)
+}
+
+func(us *urlShortenerService) GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string) (entity.UrlShortener, error) {
+	res, err := us.urlShortenerRepository.GetUrlShortenerByShortUrl(ctx, shortUrl)
+	if err != nil {
+		return entity.UrlShortener{}, err
+	}
+	return us.urlShortenerRepository.IncreaseViewsCount(ctx, res)
 }
