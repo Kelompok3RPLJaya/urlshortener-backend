@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"url-shortener-backend/dto"
 	"url-shortener-backend/entity"
 	"url-shortener-backend/repository"
@@ -21,7 +22,7 @@ type UrlShortenerService interface {
 	UpdatePublic(ctx context.Context, urlShortenerID string) error
 	GetUrlShortenerByID(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
 	DeleteUrlShortener(ctx context.Context, urlShortenerID string) error
-	GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string) (entity.UrlShortener, error)
+	GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string, private dto.PrivateUpdateDTO) (entity.UrlShortener, error)
 }
 
 type urlShortenerService struct {
@@ -227,10 +228,21 @@ func (us *urlShortenerService) DeleteUrlShortener(ctx context.Context, urlShorte
 	return us.urlShortenerRepository.DeleteUrlShortener(ctx, urlShortenerUUID)
 }
 
-func(us *urlShortenerService) GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string) (entity.UrlShortener, error) {
+func(us *urlShortenerService) GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string, private dto.PrivateUpdateDTO) (entity.UrlShortener, error) {
+	var urlShortenerPrivate = entity.UrlShortener{}
 	res, err := us.urlShortenerRepository.GetUrlShortenerByShortUrl(ctx, shortUrl)
 	if err != nil {
 		return entity.UrlShortener{}, err
+	}
+	if *res.IsPrivate {
+		resPrivate, err := us.privateRepository.GetPrivateByUrlShortenerID(ctx, res.ID)
+		if err != nil {
+			return entity.UrlShortener{}, err
+		}
+		if resPrivate.Password != private.Password {
+			urlShortenerPrivate.IsPrivate = dto.BoolPointer(true)
+			return urlShortenerPrivate, errors.New("Password Url Shortener Salah")
+		}
 	}
 	return us.urlShortenerRepository.IncreaseViewsCount(ctx, res)
 }

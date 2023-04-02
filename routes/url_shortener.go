@@ -17,6 +17,6 @@ func UrlShortenerRoutes(router *gin.Engine, UrlShortenerController controller.Ur
 		urlShortenerRoutes.PUT("/:id", middleware.Authenticate(jwtService, false), UrlShortenerController.UpdateUrlShortener)
 		urlShortenerRoutes.PUT("/private/:id", middleware.Authenticate(jwtService, false), UrlShortenerController.UpdatePrivate)
 		urlShortenerRoutes.DELETE("/:id", middleware.Authenticate(jwtService, false), UrlShortenerController.DeleteUrlShortener)
-		urlShortenerRoutes.GET("/long_url/:short_url", UrlShortenerController.GetUrlShortenerByShortUrl)
+		urlShortenerRoutes.POST("/long_url/:short_url", UrlShortenerController.GetUrlShortenerByShortUrl)
 	}
 }

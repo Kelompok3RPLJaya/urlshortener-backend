@@ -243,9 +243,16 @@ func (uc *urlShortenerController) DeleteUrlShortener(ctx *gin.Context) {
 
 func(uc *urlShortenerController) GetUrlShortenerByShortUrl(ctx *gin.Context) {
 	shortUrl := ctx.Param("short_url")
-	result, err := uc.urlShortenerService.GetUrlShortenerByShortUrl(ctx.Request.Context(), shortUrl)
+	var private dto.PrivateUpdateDTO
+	err := ctx.ShouldBind(&private)
 	if err != nil {
 		res := common.BuildErrorResponse("Gagal Mendapatkan Url", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	result, err := uc.urlShortenerService.GetUrlShortenerByShortUrl(ctx.Request.Context(), shortUrl, private)
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal Mendapatkan Url", err.Error(), result)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}

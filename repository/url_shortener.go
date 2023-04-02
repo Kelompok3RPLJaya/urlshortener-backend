@@ -51,16 +51,18 @@ func (db *urlShortenerConnection) CreateUrlShortener(ctx context.Context, urlSho
 	if tx.Error != nil {
 		return entity.UrlShortener{}, tx.Error
 	}
-	if urlShortener.UserID != nil {
-		var feeds = entity.Feeds{
-			Data:           urlShortener.ShortUrl,
-			Method:         "Create",
-			UrlShortenerID: urlShortener.ID,
+	if *urlShortener.IsFeeds {
+		if urlShortener.UserID != nil {
+			var feeds = entity.Feeds{
+				Data:           urlShortener.ShortUrl,
+				Method:         "Create",
+				UrlShortenerID: urlShortener.ID,
+			}
+			_, err := db.feedsRepository.CreateFeeds(ctx, feeds)
+			if err != nil {
+				return entity.UrlShortener{}, err
+			}	
 		}
-		_, err := db.feedsRepository.CreateFeeds(ctx, feeds)
-		if err != nil {
-			return entity.UrlShortener{}, err
-		}	
 	}
 	return urlShortener, nil
 }
@@ -118,15 +120,17 @@ func (db *urlShortenerConnection) UpdateUrlShortener(ctx context.Context, urlSho
 	if tx.Error != nil {
 		return tx.Error
 	}
-	data := urlShortenerFeeds.ShortUrl + "|||" + urlShortener.ShortUrl
-	var feeds = entity.Feeds{
-		Data:           data,
-		Method:         "Update",
-		UrlShortenerID: urlShortener.ID,
-	}
-	_, errFeeds := db.feedsRepository.CreateFeeds(ctx, feeds)
-	if err != nil {
-		return errFeeds
+	if *urlShortener.IsFeeds {
+		data := urlShortenerFeeds.ShortUrl + "|||" + urlShortener.ShortUrl
+		var feeds = entity.Feeds{
+			Data:           data,
+			Method:         "Update",
+			UrlShortenerID: urlShortener.ID,
+		}
+		_, errFeeds := db.feedsRepository.CreateFeeds(ctx, feeds)
+		if err != nil {
+			return errFeeds
+		}
 	}
 	return nil
 }
@@ -140,14 +144,16 @@ func (db *urlShortenerConnection) DeleteUrlShortener(ctx context.Context, urlSho
 	if tx.Error != nil {
 		return tx.Error
 	}
-	var feeds = entity.Feeds{
-		Data:           urlShortenerFeeds.ShortUrl,
-		Method:         "Delete",
-		UrlShortenerID: urlShortenerFeeds.ID,
-	}
-	_, errFeeds := db.feedsRepository.CreateFeeds(ctx, feeds)
-	if err != nil {
-		return errFeeds
+	if *urlShortenerFeeds.IsFeeds {
+		var feeds = entity.Feeds{
+			Data:           urlShortenerFeeds.ShortUrl,
+			Method:         "Delete",
+			UrlShortenerID: urlShortenerFeeds.ID,
+		}
+		_, errFeeds := db.feedsRepository.CreateFeeds(ctx, feeds)
+		if err != nil {
+			return errFeeds
+		}
 	}
 	return nil
 }
@@ -163,7 +169,7 @@ func (db *urlShortenerConnection) IncreaseViewsCount(ctx context.Context, urlSho
 
 func (db *urlShortenerConnection) GetUrlShortenerByIDUnscopped(ctx context.Context, urlShortenerID uuid.UUID) (entity.UrlShortener, error) {
 	var urlShortener entity.UrlShortener
-	tx := db.connection.Unscoped().Where("id = ? and user_id is not null", urlShortenerID).Take(&urlShortener)
+	tx := db.connection.Unscoped().Where("id = ? and user_id is not null and is_feeds = true", urlShortenerID).Take(&urlShortener)
 	if tx.Error != nil {
 		return entity.UrlShortener{}, tx.Error
 	}
