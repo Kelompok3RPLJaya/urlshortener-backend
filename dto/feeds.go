@@ -1,8 +1,6 @@
 package dto
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 )
 
@@ -19,5 +17,5 @@ type FeedsResponseDTO struct {
 	UrlShortenerID   	uuid.UUID 			`gorm:"foreignKey" json:"url_shortener_id"`
 	Data 		Data 		`json:"data"`
 
-	CreatedAt 	time.Time 	`json:"created_at"`
+	CreatedAt 	string 	`json:"created_at"`
 }
