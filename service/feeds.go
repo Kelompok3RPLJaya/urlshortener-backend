@@ -35,9 +35,9 @@ func(fs *feedsService) GetAllFeeds(ctx context.Context, pagination entity.Pagina
 	var feedsDTO dto.FeedsResponseDTO
 	for _, v := range resFeeds {
 		urlShortener, err := fs.urlShortenerRepository.GetUrlShortenerByIDUnscopped(ctx, v.UrlShortenerID)
-		if urlShortener.ShortUrl == "" {
-			continue
-		}
+		// if urlShortener.ShortUrl == "" {
+		// 	continue
+		// }
 		user, err := fs.userRepository.FindUserByID(ctx, *urlShortener.UserID)
 		if err != nil {
 			return dto.PaginationResponse{}, err
