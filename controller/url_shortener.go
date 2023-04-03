@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"url-shortener-backend/common"
 	"url-shortener-backend/dto"
@@ -38,6 +39,12 @@ func (uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 	err := ctx.ShouldBind(&urlShortener)
 	if err != nil {
 		res := common.BuildErrorResponse("Gagal Menambahkan Url Shortener", err.Error(), common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	_, err = url.ParseRequestURI(urlShortener.LongUrl)
+	if err != nil {
+		res := common.BuildErrorResponse("Gagal Menambahkan Url Shortener", "Url Tidak Valid", common.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}

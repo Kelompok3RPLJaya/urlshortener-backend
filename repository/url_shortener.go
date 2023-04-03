@@ -51,7 +51,7 @@ func (db *urlShortenerConnection) CreateUrlShortener(ctx context.Context, urlSho
 	if tx.Error != nil {
 		return entity.UrlShortener{}, tx.Error
 	}
-	if *urlShortener.IsFeeds {
+	if urlShortener.IsFeeds == dto.BoolPointer(true) {
 		if urlShortener.UserID != nil {
 			var feeds = entity.Feeds{
 				Data:           urlShortener.ShortUrl,
@@ -116,11 +116,12 @@ func (db *urlShortenerConnection) UpdateUrlShortener(ctx context.Context, urlSho
 	if err != nil {
 		return err
 	}
-	tx := db.connection.Updates(&urlShortener)
+	urlShortenerFeeds.IsPrivate = urlShortener.IsFeeds
+	tx := db.connection.Updates(&urlShortenerFeeds)
 	if tx.Error != nil {
 		return tx.Error
 	}
-	if *urlShortener.IsFeeds {
+	if urlShortener.IsFeeds == dto.BoolPointer(true) {
 		data := urlShortenerFeeds.ShortUrl + "|||" + urlShortener.ShortUrl
 		var feeds = entity.Feeds{
 			Data:           data,
@@ -144,7 +145,7 @@ func (db *urlShortenerConnection) DeleteUrlShortener(ctx context.Context, urlSho
 	if tx.Error != nil {
 		return tx.Error
 	}
-	if *urlShortenerFeeds.IsFeeds {
+	if urlShortenerFeeds.IsFeeds == dto.BoolPointer(true) {
 		var feeds = entity.Feeds{
 			Data:           urlShortenerFeeds.ShortUrl,
 			Method:         "Delete",

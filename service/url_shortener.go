@@ -74,6 +74,9 @@ func (us *urlShortenerService) ValidateUrlShortenerUser(ctx context.Context, use
 	if err != nil {
 		return false
 	}
+	if urlShortener.UserID == nil {
+		return false
+	}
 	if userID == urlShortener.UserID.String() {
 		return true
 	}
