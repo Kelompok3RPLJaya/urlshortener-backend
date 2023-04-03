@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"url-shortener-backend/common"
 	"url-shortener-backend/dto"
@@ -48,7 +49,12 @@ func (uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
-
+	if !regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(urlShortener.ShortUrl) {
+		res := common.BuildErrorResponse("Gagal Menambahkan Url Shortener", "Short Url Tidak Valid", common.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	
 	if ctx.Request.Header["Authorization"] != nil {
 		token := ctx.MustGet("token").(string)
 		userID, err := uc.jwtService.GetUserIDByToken(token)
@@ -133,6 +139,22 @@ func (uc *urlShortenerController) UpdateUrlShortener(ctx *gin.Context) {
 		res := common.BuildErrorResponse("Gagal Mengupdate Url Shortener", err.Error(), common.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
+	}
+	if urlShortenerDTO.LongUrl != "" {
+		_, err = url.ParseRequestURI(urlShortenerDTO.LongUrl)
+		if err != nil {
+			res := common.BuildErrorResponse("Gagal Menambahkan Url Shortener", "Url Tidak Valid", common.EmptyObj{})
+			ctx.JSON(http.StatusBadRequest, res)
+			return
+		}
+	}
+
+	if urlShortenerDTO.ShortUrl != "" {
+		if !regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(urlShortenerDTO.ShortUrl) {
+			res := common.BuildErrorResponse("Gagal Menambahkan Url Shortener", "Short Url Tidak Valid", common.EmptyObj{})
+			ctx.JSON(http.StatusBadRequest, res)
+			return
+		}
 	}
 
 	token := ctx.MustGet("token").(string)
