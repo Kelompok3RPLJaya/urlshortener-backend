@@ -116,17 +116,17 @@ func (db *urlShortenerConnection) UpdateUrlShortener(ctx context.Context, urlSho
 	if err != nil {
 		return err
 	}
-	urlShortenerFeeds.IsPrivate = urlShortener.IsFeeds
+	urlShortenerFeeds.IsPrivate = dto.BoolPointer(*urlShortener.IsPrivate)
 	tx := db.connection.Updates(&urlShortenerFeeds)
 	if tx.Error != nil {
 		return tx.Error
 	}
-	if urlShortener.IsFeeds == dto.BoolPointer(true) {
+	if urlShortenerFeeds.IsFeeds == dto.BoolPointer(true) {
 		data := urlShortenerFeeds.ShortUrl + "|||" + urlShortener.ShortUrl
 		var feeds = entity.Feeds{
 			Data:           data,
 			Method:         "Update",
-			UrlShortenerID: urlShortener.ID,
+			UrlShortenerID: urlShortenerFeeds.ID,
 		}
 		_, errFeeds := db.feedsRepository.CreateFeeds(ctx, feeds)
 		if err != nil {
