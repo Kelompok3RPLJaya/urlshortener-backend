@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"time"
 	"url-shortener-backend/dto"
 	"url-shortener-backend/entity"
 	"url-shortener-backend/repository"
@@ -34,10 +35,11 @@ func(fs *feedsService) GetAllFeeds(ctx context.Context, pagination entity.Pagina
 	var feedsDTOArray []dto.FeedsResponseDTO
 	var feedsDTO dto.FeedsResponseDTO
 	for _, v := range resFeeds {
+		resTimeCreated, err := time.Parse("2006-1-2 15:4:5", v.CreatedAt.Format("2006-1-2 15:4:5"))
+		if err != nil {
+			return  dto.PaginationResponse{}, err
+		}
 		urlShortener, err := fs.urlShortenerRepository.GetUrlShortenerByIDUnscopped(ctx, v.UrlShortenerID)
-		// if urlShortener.ShortUrl == "" {
-		// 	continue
-		// }
 		user, err := fs.userRepository.FindUserByID(ctx, *urlShortener.UserID)
 		if err != nil {
 			return dto.PaginationResponse{}, err
@@ -47,7 +49,7 @@ func(fs *feedsService) GetAllFeeds(ctx context.Context, pagination entity.Pagina
 		feedsDTO.Username = user.Name
 		feedsDTO.Method = v.Method
 		feedsDTO.UrlShortenerID = v.UrlShortenerID
-		feedsDTO.CreatedAt = v.Timestamp.CreatedAt
+		feedsDTO.CreatedAt = resTimeCreated.String()[:len(resTimeCreated.String())-10]
 		if v.Method == "Create" || v.Method == "Delete" {
 			feedsDTO.Data.Before = ""
 			feedsDTO.Data.After = v.Data

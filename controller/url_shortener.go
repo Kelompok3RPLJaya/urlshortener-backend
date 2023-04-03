@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -127,6 +128,8 @@ func (uc *urlShortenerController) GetAllUrlShortener(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
+	fmt.Println(result[0].ID)
+	fmt.Println(result[0].CreatedAt)
 	res := common.BuildResponse(true, "Berhasil Mendapatkan List Url Shortener", result)
 	ctx.JSON(http.StatusOK, res)
 }

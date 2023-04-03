@@ -1,11 +1,9 @@
 package dto
 
 import (
-	"time"
 	"url-shortener-backend/entity"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type UrlShortenerCreateDTO struct {
@@ -46,10 +44,8 @@ type UrlShortenerResponseDTO struct {
 
 	UserID   	uuid.UUID 		`gorm:"foreignKey" json:"user_id"`
 
-	Password	string		`json:"password" form:"password"`
-	CreatedAt 		time.Time 	`json:"created_at" default:"CURRENT_TIMESTAMP"`
-	UpdatedAt 		time.Time 	`json:"updated_at"`
-	DeletedAt 		gorm.DeletedAt
+	CreatedAt 	string 	`json:"created_at"`
+	UpdatedAt 	string 	`json:"updated_at"`
 }
 
 func BoolPointer(b bool) *bool {

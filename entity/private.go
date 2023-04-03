@@ -1,6 +1,11 @@
 package entity
 
-import "github.com/google/uuid"
+import (
+	"url-shortener-backend/helpers"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type Private struct {
 	ID             uuid.UUID `gorm:"primary_key;not_null"`
@@ -10,4 +15,13 @@ type Private struct {
 	UrlShortener     *UrlShortener     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"url_shortener,omitempty"`
 
 	Timestamp
+}
+
+func (u *Private) BeforeCreate(tx *gorm.DB) error {
+	var err error
+	u.Password, err = helpers.HashPassword(u.Password)
+	if err != nil {
+		return err
+	}
+	return nil
 }

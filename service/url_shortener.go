@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 	"url-shortener-backend/dto"
 	"url-shortener-backend/entity"
+	"url-shortener-backend/helpers"
 	"url-shortener-backend/repository"
 
 	"github.com/google/uuid"
@@ -16,7 +18,7 @@ type UrlShortenerService interface {
 	ValidateUrlShortenerUser(ctx context.Context, userID string, urlShortenerID string) bool
 	ValidateShortUrl(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
 	GetUrlShortenerByUserID(ctx context.Context, UserID string, search string, pagination entity.Pagination) (dto.PaginationResponse, error)
-	GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error)
+	GetAllUrlShortener(ctx context.Context) ([]dto.UrlShortenerResponseDTO, error)
 	UpdateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerUpdateDTO, urlShortenerID string) error
 	UpdatePrivate(ctx context.Context, urlShortenerID string, privateDTO dto.PrivateUpdateDTO) error
 	UpdatePublic(ctx context.Context, urlShortenerID string) error
@@ -104,6 +106,14 @@ func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, User
 		var userDTOResponse = []dto.UrlShortenerResponseDTO{}
 		var userDTO = dto.UrlShortenerResponseDTO{}
 		for _, v := range resUrlShortener {
+			resTimeCreated, err := time.Parse("2006-1-2 15:4:5", v.CreatedAt.Format("2006-1-2 15:4:5"))
+			if err != nil {
+				return dto.PaginationResponse{}, err
+			}
+			resTimeUpdated, err := time.Parse("2006-1-2 15:4:5", v.CreatedAt.Format("2006-1-2 15:4:5"))
+			if err != nil {
+				return dto.PaginationResponse{}, err
+			}
 			userDTO.ID = v.ID
 			userDTO.Title = v.Title
 			userDTO.LongUrl = v.LongUrl
@@ -113,9 +123,8 @@ func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, User
 			userDTO.IsFeeds = v.IsFeeds
 			userDTO.UserID = *v.UserID
 			userDTO.Username = resUser.Name
-			userDTO.CreatedAt = v.CreatedAt
-			userDTO.UpdatedAt = v.UpdatedAt
-			userDTO.DeletedAt = v.DeletedAt
+			userDTO.CreatedAt = resTimeCreated.String()[:len(resTimeCreated.String())-10]
+			userDTO.UpdatedAt = resTimeUpdated.String()[:len(resTimeUpdated.String())-10]
 			userDTOResponse = append(userDTOResponse, userDTO)
 		}
 		resPagination.DataPerPage = userDTOResponse
@@ -132,6 +141,14 @@ func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, User
 		var userDTOResponse = []dto.UrlShortenerResponseDTO{}
 		var userDTO = dto.UrlShortenerResponseDTO{}
 		for _, v := range resUrlShortener {
+			resTimeCreated, err := time.Parse("2006-1-2 15:4:5", v.CreatedAt.Format("2006-1-2 15:4:5"))
+			if err != nil {
+				return dto.PaginationResponse{}, err
+			}
+			resTimeUpdated, err := time.Parse("2006-1-2 15:4:5", v.CreatedAt.Format("2006-1-2 15:4:5"))
+			if err != nil {
+				return dto.PaginationResponse{}, err
+			}
 			userDTO.ID = v.ID
 			userDTO.Title = v.Title
 			userDTO.LongUrl = v.LongUrl
@@ -141,9 +158,8 @@ func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, User
 			userDTO.IsFeeds = v.IsFeeds
 			userDTO.UserID = *v.UserID
 			userDTO.Username = resUser.Name
-			userDTO.CreatedAt = v.CreatedAt
-			userDTO.UpdatedAt = v.UpdatedAt
-			userDTO.DeletedAt = v.DeletedAt
+			userDTO.CreatedAt = resTimeCreated.String()[:len(resTimeCreated.String())-10]
+			userDTO.UpdatedAt = resTimeUpdated.String()[:len(resTimeUpdated.String())-10]
 			userDTOResponse = append(userDTOResponse, userDTO)
 		}
 		resPagination.DataPerPage = userDTOResponse
@@ -151,8 +167,37 @@ func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, User
 	}
 }
 
-func (us *urlShortenerService) GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error) {
-	return us.urlShortenerRepository.GetAllUrlShortener(ctx)
+func (us *urlShortenerService) GetAllUrlShortener(ctx context.Context) ([]dto.UrlShortenerResponseDTO, error) {
+	res, err := us.urlShortenerRepository.GetAllUrlShortener(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var userDTOResponse = []dto.UrlShortenerResponseDTO{}
+	var userDTO = dto.UrlShortenerResponseDTO{}
+	for _, v := range res {
+		resTimeCreated, err := time.Parse("2006-1-2 15:4:5", v.CreatedAt.Format("2006-1-2 15:4:5"))
+		if err != nil {
+			return nil, err
+		}
+		resTimeUpdated, err := time.Parse("2006-1-2 15:4:5", v.CreatedAt.Format("2006-1-2 15:4:5"))
+		if err != nil {
+			return nil, err
+		}
+		userDTO.ID = v.ID
+		userDTO.Title = v.Title
+		userDTO.LongUrl = v.LongUrl
+		userDTO.ShortUrl = v.ShortUrl
+		userDTO.Views = v.Views
+		userDTO.IsPrivate = v.IsPrivate
+		userDTO.IsFeeds = v.IsFeeds
+		if v.UserID != nil {
+			userDTO.UserID = *v.UserID
+		}
+		userDTO.CreatedAt = resTimeCreated.String()[:len(resTimeCreated.String())-10]
+		userDTO.UpdatedAt = resTimeUpdated.String()[:len(resTimeUpdated.String())-10]
+		userDTOResponse = append(userDTOResponse, userDTO)
+	}
+	return userDTOResponse, nil
 }
 
 func (us *urlShortenerService) UpdateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerUpdateDTO, urlShortenerID string) error {
@@ -242,7 +287,8 @@ func(us *urlShortenerService) GetUrlShortenerByShortUrl(ctx context.Context, sho
 		if err != nil {
 			return entity.UrlShortener{}, err
 		}
-		if resPrivate.Password != private.Password {
+		_, err = helpers.CheckPassword(resPrivate.Password, []byte(private.Password))
+		if err != nil {
 			urlShortenerPrivate.IsPrivate = dto.BoolPointer(true)
 			return urlShortenerPrivate, errors.New("Password Url Shortener Salah")
 		}
