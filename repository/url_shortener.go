@@ -15,13 +15,13 @@ type UrlShortenerRepository interface {
 	CreateUrlShortener(ctx context.Context, urlShortener entity.UrlShortener) (entity.UrlShortener, error)
 	GetAllUrlShortener(ctx context.Context) ([]entity.UrlShortener, error)
 	GetUrlShortenerByID(ctx context.Context, urlShortenerID uuid.UUID) (entity.UrlShortener, error)
-	GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error)
+	GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID, filter string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error)
 	GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string) (entity.UrlShortener, error)
 	UpdateUrlShortener(ctx context.Context, urlShortener entity.UrlShortener) error
 	DeleteUrlShortener(ctx context.Context, urlShortenerID uuid.UUID) error
 	IncreaseViewsCount(ctx context.Context, urlShortener entity.UrlShortener) (entity.UrlShortener, error)
 	GetUrlShortenerByIDUnscopped(ctx context.Context, urlShortenerID uuid.UUID) (entity.UrlShortener, error)
-	GetUrlShortenerByUserIDWithSearch(ctx context.Context, UserID uuid.UUID, search string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error)
+	GetUrlShortenerByUserIDWithSearch(ctx context.Context, UserID uuid.UUID, search string, filter string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error)
 }
 
 type urlShortenerConnection struct {
@@ -85,15 +85,26 @@ func (db *urlShortenerConnection) GetUrlShortenerByID(ctx context.Context, urlSh
 	return urlShortener, nil
 }
 
-func (db *urlShortenerConnection) GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error) {
+func (db *urlShortenerConnection) GetUrlShortenerByUserID(ctx context.Context, UserID uuid.UUID, filter string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error) {
 	var paginationResponse dto.PaginationResponse
 	var urlShortener []entity.UrlShortener
-
+	
 	totalData, _ := db.GetTotalDataUser(ctx, UserID)
-
-	tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ?", UserID).Find(&urlShortener)
-	if tx.Error != nil {
-		return dto.PaginationResponse{}, nil, tx.Error
+	if filter == "created_at" {
+		tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ?", UserID).Order("created_at desc").Find(&urlShortener)		
+		if tx.Error != nil {
+			return dto.PaginationResponse{}, nil, tx.Error
+		}
+	} else if filter == "short_url" {
+		tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ?", UserID).Order("short_url asc").Find(&urlShortener)		
+		if tx.Error != nil {
+			return dto.PaginationResponse{}, nil, tx.Error
+		}
+	} else {
+		tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ?", UserID).Find(&urlShortener)		
+		if tx.Error != nil {
+			return dto.PaginationResponse{}, nil, tx.Error
+		}
 	}
 	// paginationResponse.DataPerPage = urlShortener
 	paginationResponse.Meta.MaxPage = pagination.MaxPage
@@ -177,16 +188,29 @@ func (db *urlShortenerConnection) GetUrlShortenerByIDUnscopped(ctx context.Conte
 	return urlShortener, nil
 }
 
-func (db *urlShortenerConnection) GetUrlShortenerByUserIDWithSearch(ctx context.Context, UserID uuid.UUID, search string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error) {
+func (db *urlShortenerConnection) GetUrlShortenerByUserIDWithSearch(ctx context.Context, UserID uuid.UUID, search string, filter string, pagination entity.Pagination) (dto.PaginationResponse, []entity.UrlShortener, error) {
+	
 	var paginationResponse dto.PaginationResponse
 	var urlShortener []entity.UrlShortener
 
 	totalData, _ := db.GetTotalDataUser(ctx, UserID)
-
-	tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ? and (short_url LIKE ? or long_url LIKE ? or title LIKE ?)", UserID, "%" + search + "%", "%" + search + "%", "%" + search + "%").Find(&urlShortener)
-	if tx.Error != nil {
-		return dto.PaginationResponse{}, nil, tx.Error
+	if filter == "created_at" {
+		tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ? and (short_url LIKE ? or long_url LIKE ? or title LIKE ?)", UserID, "%" + search + "%", "%" + search + "%", "%" + search + "%").Order("created_at desc").Find(&urlShortener)		
+		if tx.Error != nil {
+			return dto.PaginationResponse{}, nil, tx.Error
+		}
+	} else if filter == "short_url" {
+		tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ? and (short_url LIKE ? or long_url LIKE ? or title LIKE ?)", UserID, "%" + search + "%", "%" + search + "%", "%" + search + "%").Order("short_url asc").Find(&urlShortener)		
+		if tx.Error != nil {
+			return dto.PaginationResponse{}, nil, tx.Error
+		}
+	} else {
+		tx := db.connection.Debug().Scopes(common.Pagination(&pagination, totalData)).Where("user_id = ? and (short_url LIKE ? or long_url LIKE ? or title LIKE ?)", UserID, "%" + search + "%", "%" + search + "%", "%" + search + "%").Find(&urlShortener)		
+		if tx.Error != nil {
+			return dto.PaginationResponse{}, nil, tx.Error
+		}
 	}
+	
 	// paginationResponse.DataPerPage = urlShortener
 	paginationResponse.Meta.MaxPage = pagination.MaxPage
 	paginationResponse.Meta.Page = pagination.Page

@@ -92,6 +92,7 @@ func (uc *urlShortenerController) CreateUrlShortener(ctx *gin.Context) {
 
 func (uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
 	search := ctx.Query("search")
+	filter := ctx.Query("filter")
 	var pagination entity.Pagination
 	page, _ := strconv.Atoi(ctx.Query("page"))
 	if page <= 0 {
@@ -111,7 +112,7 @@ func (uc *urlShortenerController) GetMeUrlShortener(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
 		return
 	}
-	result, err := uc.urlShortenerService.GetUrlShortenerByUserID(ctx.Request.Context(), userID.String(), search, pagination)
+	result, err := uc.urlShortenerService.GetUrlShortenerByUserID(ctx.Request.Context(), userID.String(), search, filter, pagination)
 	if err != nil {
 		res := common.BuildErrorResponse("Gagal Mendapatkan Url Shortener User", err.Error(), common.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
@@ -282,10 +283,15 @@ func(uc *urlShortenerController) GetUrlShortenerByShortUrl(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
-	result, err := uc.urlShortenerService.GetUrlShortenerByShortUrl(ctx.Request.Context(), shortUrl, private)
-	if err != nil {
-		res := common.BuildErrorResponse("Gagal Mendapatkan Url", err.Error(), result)
+	result, err, status := uc.urlShortenerService.GetUrlShortenerByShortUrl(ctx.Request.Context(), shortUrl, private)
+	if !status {
+		res := common.BuildErrorResponse("Url Tidak Ditemukan", err.Error(), result)
 		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	if err != nil {
+		res := common.BuildResponse(true, err.Error(), result)
+		ctx.JSON(http.StatusOK, res)
 		return
 	}
 	res := common.BuildResponse(true, "Berhasil Mendapatkan Url", result)

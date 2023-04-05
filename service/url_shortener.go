@@ -17,14 +17,14 @@ type UrlShortenerService interface {
 	CreateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerCreateDTO) (entity.UrlShortener, error)
 	ValidateUrlShortenerUser(ctx context.Context, userID string, urlShortenerID string) bool
 	ValidateShortUrl(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
-	GetUrlShortenerByUserID(ctx context.Context, UserID string, search string, pagination entity.Pagination) (dto.PaginationResponse, error)
+	GetUrlShortenerByUserID(ctx context.Context, UserID string, search string, filter string, pagination entity.Pagination) (dto.PaginationResponse, error)
 	GetAllUrlShortener(ctx context.Context) ([]dto.UrlShortenerResponseDTO, error)
 	UpdateUrlShortener(ctx context.Context, urlShortenerDTO dto.UrlShortenerUpdateDTO, urlShortenerID string) error
 	UpdatePrivate(ctx context.Context, urlShortenerID string, privateDTO dto.PrivateUpdateDTO) error
 	UpdatePublic(ctx context.Context, urlShortenerID string) error
 	GetUrlShortenerByID(ctx context.Context, urlShortenerID string) (entity.UrlShortener, error)
 	DeleteUrlShortener(ctx context.Context, urlShortenerID string) error
-	GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string, private dto.PrivateUpdateDTO) (entity.UrlShortener, error)
+	GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string, private dto.PrivateUpdateDTO) (entity.UrlShortener, error, bool)
 }
 
 type urlShortenerService struct {
@@ -89,13 +89,13 @@ func (us *urlShortenerService) ValidateShortUrl(ctx context.Context, urlShortene
 	return us.urlShortenerRepository.GetUrlShortenerByShortUrl(ctx, urlShortenerID)
 }
 
-func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, UserID string, search string, pagination entity.Pagination) (dto.PaginationResponse, error) {
+func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, UserID string, search string, filter string, pagination entity.Pagination) (dto.PaginationResponse, error) {
 	userUUID, err := uuid.Parse(UserID)
 	if err != nil {
 		return dto.PaginationResponse{}, err
 	}
 	if search != "" {
-		resPagination, resUrlShortener, err := us.urlShortenerRepository.GetUrlShortenerByUserIDWithSearch(ctx, userUUID, search, pagination)
+		resPagination, resUrlShortener, err := us.urlShortenerRepository.GetUrlShortenerByUserIDWithSearch(ctx, userUUID, search, filter, pagination)
 		if err != nil {
 			return dto.PaginationResponse{}, err
 		}	
@@ -130,7 +130,7 @@ func (us *urlShortenerService) GetUrlShortenerByUserID(ctx context.Context, User
 		resPagination.DataPerPage = userDTOResponse
 		return resPagination, err
 	} else {
-		resPagination, resUrlShortener, err := us.urlShortenerRepository.GetUrlShortenerByUserID(ctx, userUUID, pagination)
+		resPagination, resUrlShortener, err := us.urlShortenerRepository.GetUrlShortenerByUserID(ctx, userUUID, filter, pagination)
 		if err != nil {
 			return dto.PaginationResponse{}, err
 		}
@@ -276,22 +276,27 @@ func (us *urlShortenerService) DeleteUrlShortener(ctx context.Context, urlShorte
 	return us.urlShortenerRepository.DeleteUrlShortener(ctx, urlShortenerUUID)
 }
 
-func(us *urlShortenerService) GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string, private dto.PrivateUpdateDTO) (entity.UrlShortener, error) {
+func(us *urlShortenerService) GetUrlShortenerByShortUrl(ctx context.Context, shortUrl string, private dto.PrivateUpdateDTO) (entity.UrlShortener, error, bool) {
 	var urlShortenerPrivate = entity.UrlShortener{}
 	res, err := us.urlShortenerRepository.GetUrlShortenerByShortUrl(ctx, shortUrl)
 	if err != nil {
-		return entity.UrlShortener{}, err
+		return entity.UrlShortener{}, err, false
 	}
 	if *res.IsPrivate {
 		resPrivate, err := us.privateRepository.GetPrivateByUrlShortenerID(ctx, res.ID)
 		if err != nil {
-			return entity.UrlShortener{}, err
+			return entity.UrlShortener{}, err, true
 		}
 		_, err = helpers.CheckPassword(resPrivate.Password, []byte(private.Password))
 		if err != nil {
 			urlShortenerPrivate.IsPrivate = dto.BoolPointer(true)
-			return urlShortenerPrivate, errors.New("Password Url Shortener Salah")
+			return urlShortenerPrivate, errors.New("Password Url Shortener Salah"), true
 		}
 	}
-	return us.urlShortenerRepository.IncreaseViewsCount(ctx, res)
+	resIncrease, err := us.urlShortenerRepository.IncreaseViewsCount(ctx, res)
+	if err != nil {
+		urlShortenerPrivate.IsPrivate = dto.BoolPointer(true)
+		return urlShortenerPrivate, errors.New("Password Url Shortener Salah"), true
+	}
+	return resIncrease, nil, true
 }
